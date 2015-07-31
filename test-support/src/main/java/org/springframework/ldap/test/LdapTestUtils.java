@@ -109,15 +109,6 @@ public final class LdapTestUtils {
     }
 
     /**
-     * @deprecated use {@link #startEmbeddedServer(int, String, String)} instead.
-     */
-    public static DirContext startApacheDirectoryServer(int port, String defaultPartitionSuffix,
-                                                        String defaultPartitionName, String principal, String credentials) throws NamingException {
-        return LdapTestUtils.startApacheDirectoryServer(port, defaultPartitionSuffix, defaultPartitionName, principal,
-                credentials, null);
-    }
-
-    /**
      * Shuts down the embedded server, if there is one. If no server was previously started in this JVM
      * this is silently ignored.
      *

@@ -14,7 +14,7 @@ task downloadJavacc {
 
 task installJavacc(type:Copy,dependsOn:downloadJavacc) {
     ext.archive = downloadJavacc.dest
-    ext.javaccHome = file("$buildDir/javacc/")
+    ext.javaccHome = file("$buildDir/javacc/javacc-5.0")
 
     inputs.file archive
     outputs.dir javaccHome
