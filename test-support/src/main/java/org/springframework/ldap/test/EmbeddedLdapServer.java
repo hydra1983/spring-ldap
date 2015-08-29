@@ -20,7 +20,11 @@ import org.apache.commons.io.FileUtils;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.server.core.DefaultDirectoryService;
+import org.apache.directory.server.core.api.CacheService;
 import org.apache.directory.server.core.api.DirectoryService;
+import org.apache.directory.server.core.api.InstanceLayout;
+import org.apache.directory.server.core.factory.DefaultDirectoryServiceFactory;
+import org.apache.directory.server.core.factory.DirectoryServiceFactory;
 import org.apache.directory.server.core.partition.impl.btree.jdbm.JdbmPartition;
 import org.apache.directory.server.ldap.LdapServer;
 import org.apache.directory.server.protocol.shared.transport.TcpTransport;
@@ -46,31 +50,44 @@ public final class EmbeddedLdapServer {
 
     public static EmbeddedLdapServer newEmbeddedServer(String defaultPartitionName, String defaultPartitionSuffix, int port)
             throws Exception{
-        workingDirectory = new File(System.getProperty("java.io.tmpdir") + "/apacheds-test1");
-        FileUtils.deleteDirectory(workingDirectory);
+//        workingDirectory = new File(System.getProperty("java.io.tmpdir") + "/apacheds-test1");
+//        FileUtils.deleteDirectory(workingDirectory);
 
-        DirectoryService directoryService = new DefaultDirectoryService();
-        directoryService.setShutdownHookEnabled(true);
-        directoryService.setAllowAnonymousAccess(true);
+        DirectoryServiceFactory factory = new DefaultDirectoryServiceFactory();
+        factory.init("apacheds-test1");
+
+        DirectoryService directoryService = factory.getDirectoryService();
+//        directoryService.setShutdownHookEnabled(true);
+//        directoryService.setAllowAnonymousAccess(true);
 
         //directoryService.setWorkingDirectory(workingDirectory);
-        directoryService.getChangeLog().setEnabled( false );
+//        directoryService.getChangeLog().setEnabled( false );
 
-        JdbmPartition partition = new JdbmPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
-        partition.setId(defaultPartitionName);
-        partition.setSuffixDn(new Dn(defaultPartitionSuffix));
-        directoryService.addPartition(partition);
+//        DirectoryService directoryService = new DefaultDirectoryService();
+//        directoryService.setInstanceLayout(new InstanceLayout(workingDirectory));
+//        directoryService.setShutdownHookEnabled(true);
+//        directoryService.setAllowAnonymousAccess(true);
+//
+//        directoryService.getChangeLog().setEnabled( false );
 
-        directoryService.startup();
+//        final CacheService cacheService = new CacheService();
+//        cacheService.initialize(directoryService.getInstanceLayout());
+//
+//        JdbmPartition partition = new JdbmPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
+//        partition.setId(defaultPartitionName);
+//        partition.setSuffixDn(new Dn(defaultPartitionSuffix));
+//        directoryService.addPartition(partition);
+//
+//        directoryService.startup();
 
         // Inject the apache root entry if it does not already exist
-        if ( !directoryService.getAdminSession().exists( partition.getSuffixDn() ) )
-        {
-            Entry entry = directoryService.newEntry(new Dn(defaultPartitionSuffix));
-            entry.add("objectClass", "top", "domain", "extensibleObject");
-            entry.add("dc", defaultPartitionName);
-            directoryService.getAdminSession().add( entry );
-        }
+//        if ( !directoryService.getAdminSession().exists( partition.getSuffixDn() ) )
+//        {
+//            Entry entry = directoryService.newEntry(new Dn(defaultPartitionSuffix));
+//            entry.add("objectClass", "top", "domain", "extensibleObject");
+//            entry.add("dc", defaultPartitionName);
+//            directoryService.getAdminSession().add( entry );
+//        }
 
         LdapServer ldapServer = new LdapServer();
         ldapServer.setDirectoryService(directoryService);
