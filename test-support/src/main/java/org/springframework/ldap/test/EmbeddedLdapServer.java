@@ -1,5 +1,5 @@
 /*
- * Copyright 2005-2013 the original author or authors.
+ * Copyright 2005-2015 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,13 +17,13 @@
 package org.springframework.ldap.test;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.directory.api.ldap.model.entry.Entry;
+import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.server.core.DefaultDirectoryService;
-import org.apache.directory.server.core.DirectoryService;
-import org.apache.directory.server.core.entry.ServerEntry;
+import org.apache.directory.server.core.api.DirectoryService;
 import org.apache.directory.server.core.partition.impl.btree.jdbm.JdbmPartition;
 import org.apache.directory.server.ldap.LdapServer;
 import org.apache.directory.server.protocol.shared.transport.TcpTransport;
-import org.apache.directory.shared.ldap.name.LdapDN;
 
 import java.io.File;
 
@@ -49,16 +49,16 @@ public final class EmbeddedLdapServer {
         workingDirectory = new File(System.getProperty("java.io.tmpdir") + "/apacheds-test1");
         FileUtils.deleteDirectory(workingDirectory);
 
-        DefaultDirectoryService directoryService = new DefaultDirectoryService();
+        DirectoryService directoryService = new DefaultDirectoryService();
         directoryService.setShutdownHookEnabled(true);
         directoryService.setAllowAnonymousAccess(true);
 
-        directoryService.setWorkingDirectory(workingDirectory);
+        //directoryService.setWorkingDirectory(workingDirectory);
         directoryService.getChangeLog().setEnabled( false );
 
-        JdbmPartition partition = new JdbmPartition();
+        JdbmPartition partition = new JdbmPartition(directoryService.getSchemaManager(), directoryService.getDnFactory());
         partition.setId(defaultPartitionName);
-        partition.setSuffix(defaultPartitionSuffix);
+        partition.setSuffixDn(new Dn(defaultPartitionSuffix));
         directoryService.addPartition(partition);
 
         directoryService.startup();
@@ -66,7 +66,7 @@ public final class EmbeddedLdapServer {
         // Inject the apache root entry if it does not already exist
         if ( !directoryService.getAdminSession().exists( partition.getSuffixDn() ) )
         {
-            ServerEntry entry = directoryService.newEntry(new LdapDN(defaultPartitionSuffix));
+            Entry entry = directoryService.newEntry(new Dn(defaultPartitionSuffix));
             entry.add("objectClass", "top", "domain", "extensibleObject");
             entry.add("dc", defaultPartitionName);
             directoryService.getAdminSession().add( entry );
