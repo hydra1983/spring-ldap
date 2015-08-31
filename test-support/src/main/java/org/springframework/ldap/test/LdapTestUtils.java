@@ -18,6 +18,7 @@ package org.springframework.ldap.test;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.directory.server.core.DefaultDirectoryService;
+import org.apache.directory.server.core.api.DirectoryService;
 import org.apache.directory.server.protocol.shared.store.LdifFileLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -250,7 +251,8 @@ public final class LdapTestUtils {
         }
     }
 
-    public static void loadLdif(DefaultDirectoryService directoryService, Resource ldifFile) throws IOException {
+    public static void loadLdif(DirectoryService directoryService, Resource ldifFile)
+        throws Exception {
         File tempFile = File.createTempFile("spring_ldap_test", ".ldif");
         try {
             InputStream inputStream = ldifFile.getInputStream();
