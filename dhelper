@@ -1,0 +1,157 @@
+#!/bin/bash -ex
+VERSION_NUMBER=${VERSION_NUMBER:-2.0.4.CI}
+BUILD_NUMBER_DEFAULT=-SNAPSHOT
+BUILD_NUMBER=${BUILD_NUMBER:-${BUILD_NUMBER_DEFAULT}}
+[[ "${BUILD_NUMBER}" != "${BUILD_NUMBER_DEFAULT}" ]] && BUILD_NUMBER="-${BUILD_NUMBER}"
+VERSION=${VERSION_NUMBER}${BUILD_NUMBER}
+BUILD_VERSION=${VERSION_NUMBER}${BUILD_NUMBER_DEFAULT}
+
+REPO_ID="mxj-nexus"
+if [[ "${BUILD_NUMBER}" == "-SNAPSHOT" ]]; then
+  REPO_URL="http://nexus.mxj.io:8081/content/repositories/snapshots"
+else
+  REPO_URL="http://nexus.mxj.io:8081/content/repositories/releases"
+fi
+
+GROUP_ID="org.springframework.ldap"
+
+doClean (){
+  [[ -d dist ]] && rm -rf dist
+  [[ -d build ]] && rm -rf build
+}
+
+doBuild (){
+  ./gradlew distZip
+  ./gradlew generatePom
+}
+
+doInstall (){
+  if [[ -f build/distributions/spring-ldap-${BUILD_VERSION}-dist.zip ]]; then
+    if [[ -d dist ]]; then
+      rm -rf dist
+    fi
+
+    unzip -d dist build/distributions/spring-ldap-${BUILD_VERSION}-dist.zip
+  fi
+
+  process_artifact install "spring-ldap-core" "$(pwd)/core/pom.xml"
+  process_artifact install "spring-ldap-core-tiger" "$(pwd)/core-tiger/pom.xml"
+  process_artifact install "spring-ldap-ldif-core" "$(pwd)/ldif/ldif-core/pom.xml"
+  process_artifact install "spring-ldap-ldif-batch" "$(pwd)/ldif/ldif-batch/pom.xml"
+  process_artifact install "spring-ldap-odm" "$(pwd)/odm/pom.xml"
+  process_artifact install "spring-ldap-test" "$(pwd)/test-support/pom.xml"
+}
+
+doDeploy (){
+  if [[ -f build/distributions/spring-ldap-${BUILD_VERSION}-dist.zip ]]; then
+    if [[ -d dist ]]; then
+      rm -rf dist
+    fi
+
+    unzip -d dist build/distributions/spring-ldap-${BUILD_VERSION}-dist.zip
+  fi
+
+  process_artifact deploy "spring-ldap-core" "$(pwd)/core/pom.xml"
+  process_artifact deploy "spring-ldap-core-tiger" "$(pwd)/core-tiger/pom.xml"
+  process_artifact deploy "spring-ldap-ldif-core" "$(pwd)/ldif/ldif-core/pom.xml"
+  process_artifact deploy "spring-ldap-ldif-batch" "$(pwd)/ldif/ldif-batch/pom.xml"
+  process_artifact deploy "spring-ldap-odm" "$(pwd)/odm/pom.xml"
+  process_artifact deploy "spring-ldap-test" "$(pwd)/test-support/pom.xml"
+}
+
+process_artifact (){
+  local action=$1
+  local groupId=${GROUP_ID}
+  local artifactId=$2
+  local version=${VERSION}
+  local pomFile=$3
+
+  do_process_artifact "${action}" "${groupId}" "${artifactId}" "${version}" "${pomFile}"
+}
+
+do_process_artifact (){
+  local action=$1
+  local groupId=$2
+  local artifactId=$3
+  local version=$4
+  local packaging=jar
+  local pomFile=$5
+
+  if [[ "${action}" == "install" ]]; then
+    do_install_artifact "${groupId}" "${artifactId}" "${version}" "${pomFile}"
+  elif [[ "${action}" == "deploy" ]]; then
+    do_deploy_artifact "${groupId}" "${artifactId}" "${version}" "${pomFile}"
+  fi
+}
+
+do_install_artifact (){
+  local groupId=$1
+  local artifactId=$2
+  local version=$3
+  local packaging=jar
+  local pomFile=$4
+
+  mvn install:install-file \
+    -Dfile=dist/spring-ldap-${BUILD_VERSION}/libs/${artifactId}-${BUILD_VERSION}.${packaging} \
+    -Dsources=dist/spring-ldap-${BUILD_VERSION}/libs/${artifactId}-${BUILD_VERSION}-sources.${packaging} \
+    -Djavadoc=dist/spring-ldap-${BUILD_VERSION}/libs/${artifactId}-${BUILD_VERSION}-javadoc.${packaging} \
+    -DgroupId=${groupId} \
+    -DartifactId=${artifactId} \
+    -Dversion=${version} \
+    -DpomFile=${pomFile} \
+    -Dpackaging=${packaging}
+}
+
+do_deploy_artifact (){
+  local groupId=$1
+  local artifactId=$2
+  local version=$3
+  local packaging=jar
+  local pomFile=$4
+
+  mvn deploy:deploy-file \
+    -Dfile=dist/spring-ldap-${BUILD_VERSION}/libs/${artifactId}-${BUILD_VERSION}.${packaging} \
+    -Dsources=dist/spring-ldap-${BUILD_VERSION}/libs/${artifactId}-${BUILD_VERSION}-sources.${packaging} \
+    -Djavadoc=dist/spring-ldap-${BUILD_VERSION}/libs/${artifactId}-${BUILD_VERSION}-javadoc.${packaging} \
+    -DgroupId=${groupId} \
+    -DartifactId=${artifactId} \
+    -Dversion=${version} \
+    -Dpackaging=${packaging} \
+    -DpomFile=${pomFile} \
+    -DrepositoryId=${REPO_ID} \
+    -Durl=${REPO_URL}
+}
+
+
+doHelp () {
+  echo "Available commands:"
+  echo " clean             - Clean artifacts"
+  echo " build             - Build artifacts"
+  echo " install           - Build and Install artifacts"
+  echo " deploy            - Build, install and Deploy artifacts"
+  echo " help              - Print this message"
+}
+
+case "$1" in
+  clean)
+    doClean
+    ;;
+  build)
+    doBuild
+    ;;
+  install)
+    doBuild
+    doInstall
+    ;;
+  deploy)
+    doBuild
+    doInstall
+    doDeploy
+    ;;
+  help)
+    doHelp
+    ;;
+  *)
+    doHelp
+    ;;
+esac
